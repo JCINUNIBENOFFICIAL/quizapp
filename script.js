@@ -1,3 +1,4 @@
+
 // ========================================
 // JCIN UNIBEN QUIZ
 // ========================================
@@ -12,14 +13,31 @@ const supabaseClient = window.supabase.createClient(
     SUPABASE_ANON_KEY
 );
 
+// ========================================
+// QUIZ CONFIGURATION
+// ========================================
+
+const QUIZ_DURATION = 10 * 60; // 10 minutes
+const ATTEMPT_STORAGE_KEY = "jcin_uniben_quiz_attempt";
+
+// ========================================
 // QUIZ STATE
+// ========================================
+
 let questions = [];
 let currentQuestion = 0;
 let answers = {};
 let participantName = "";
 let participantEmail = "";
 
+let quizDeadline = null;
+let timerInterval = null;
+let isSubmitting = false;
+
+// ========================================
 // HTML ELEMENTS
+// ========================================
+
 const startScreen = document.getElementById("start-screen");
 const quizScreen = document.getElementById("quiz-screen");
 const resultScreen = document.getElementById("result-screen");
@@ -29,6 +47,30 @@ const previousBtn = document.getElementById("previous-btn");
 const nextBtn = document.getElementById("next-btn");
 const submitBtn = document.getElementById("submit-btn");
 
+// ========================================
+// SAVE AND RESTORE ATTEMPT
+// ========================================
+
+function saveAttempt() {
+    if (!quizDeadline) return;
+
+    const attempt = {
+        full_name: participantName,
+        email: participantEmail,
+        answers: answers,
+        current_question: currentQuestion,
+        deadline: quizDeadline
+    };
+
+    localStorage.setItem(
+        ATTEMPT_STORAGE_KEY,
+        JSON.stringify(attempt)
+    );
+}
+
+function clearSavedAttempt() {
+    localStorage.removeItem(ATTEMPT_STORAGE_KEY);
+}
 
 // ========================================
 // LOAD QUESTIONS FROM SUPABASE
@@ -40,9 +82,7 @@ async function loadQuestions() {
         .select("id, question, options")
         .order("id", { ascending: true });
 
-    if (error) {
-        throw error;
-    }
+    if (error) throw error;
 
     if (!data || data.length === 0) {
         throw new Error("No quiz questions were found.");
@@ -51,6 +91,57 @@ async function loadQuestions() {
     questions = data;
 }
 
+// ========================================
+// TIMER
+// ========================================
+
+function startTimer() {
+    clearInterval(timerInterval);
+
+    updateTimer();
+
+    if (Date.now() < quizDeadline) {
+        timerInterval = setInterval(updateTimer, 1000);
+    }
+}
+
+function updateTimer() {
+    const remaining = Math.max(
+        0,
+        Math.ceil((quizDeadline - Date.now()) / 1000)
+    );
+
+    const minutes = Math.floor(remaining / 60);
+    const seconds = remaining % 60;
+
+    const timerDisplay = document.getElementById("timer-display");
+
+    if (timerDisplay) {
+        timerDisplay.textContent =
+            `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+
+        timerDisplay.classList.remove("warning", "danger");
+
+        if (remaining <= 120) {
+            timerDisplay.classList.add("danger");
+        } else if (remaining <= 300) {
+            timerDisplay.classList.add("warning");
+        }
+    }
+
+    if (remaining <= 0) {
+        clearInterval(timerInterval);
+
+        submitBtn.classList.remove("hidden");
+        nextBtn.classList.add("hidden");
+        previousBtn.classList.add("hidden");
+
+        document.getElementById("answer-error").textContent =
+            "Time is up! Your quiz is being submitted.";
+
+        submitQuiz(true);
+    }
+}
 
 // ========================================
 // START QUIZ
@@ -72,7 +163,10 @@ startBtn.addEventListener("click", async () => {
         return;
     }
 
-    if (!participantEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)) {
+    if (
+        !participantEmail ||
+        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(participantEmail)
+    ) {
         errorElement.textContent = "Please enter a valid email address.";
         emailInput.focus();
         return;
@@ -87,10 +181,16 @@ startBtn.addEventListener("click", async () => {
         currentQuestion = 0;
         answers = {};
 
+        // Start a new 10-minute attempt
+        quizDeadline = Date.now() + (QUIZ_DURATION * 1000);
+
+        saveAttempt();
+
         startScreen.classList.add("hidden");
         quizScreen.classList.remove("hidden");
 
         renderQuestion();
+        startTimer();
 
     } catch (error) {
         console.error("Quiz loading error:", error);
@@ -103,7 +203,6 @@ startBtn.addEventListener("click", async () => {
         startBtn.textContent = "Start Quiz →";
     }
 });
-
 
 // ========================================
 // DISPLAY QUESTION
@@ -132,7 +231,6 @@ function renderQuestion() {
 
     optionsContainer.innerHTML = "";
 
-    // Keep options in A, B, C, D order
     const options = Object.entries(question.options).sort(
         ([letterA], [letterB]) => letterA.localeCompare(letterB)
     );
@@ -153,6 +251,8 @@ function renderQuestion() {
 
         radio.addEventListener("change", () => {
             answers[question.id] = letter;
+
+            saveAttempt();
 
             document.querySelectorAll(".option").forEach(option => {
                 option.classList.remove("selected");
@@ -190,7 +290,6 @@ function renderQuestion() {
     document.getElementById("answer-error").textContent = "";
 }
 
-
 // ========================================
 // QUESTION NAVIGATION
 // ========================================
@@ -205,47 +304,55 @@ nextBtn.addEventListener("click", () => {
     }
 
     currentQuestion++;
+
+    saveAttempt();
     renderQuestion();
 });
-
 
 previousBtn.addEventListener("click", () => {
     if (currentQuestion > 0) {
         currentQuestion--;
+
+        saveAttempt();
         renderQuestion();
     }
 });
-
 
 // ========================================
 // SUBMIT QUIZ
 // ========================================
 
-submitBtn.addEventListener("click", async () => {
-    const question = questions[currentQuestion];
+async function submitQuiz(timedOut = false) {
+    if (isSubmitting) return;
 
-    if (!answers[question.id]) {
-        document.getElementById("answer-error").textContent =
-            "Please select an answer before submitting.";
-        return;
+    if (!timedOut) {
+        const question = questions[currentQuestion];
+
+        if (!answers[question.id]) {
+            document.getElementById("answer-error").textContent =
+                "Please select an answer before submitting.";
+            return;
+        }
+
+        const unanswered = questions.filter(
+            item => !answers[item.id]
+        );
+
+        if (unanswered.length > 0) {
+            document.getElementById("answer-error").textContent =
+                `You still have ${unanswered.length} unanswered question(s).`;
+            return;
+        }
+
+        const confirmed = window.confirm(
+            "Are you sure you want to submit your quiz?"
+        );
+
+        if (!confirmed) return;
     }
 
-    const unanswered = questions.filter(
-        item => !answers[item.id]
-    );
-
-    if (unanswered.length > 0) {
-        document.getElementById("answer-error").textContent =
-            `You still have ${unanswered.length} unanswered question(s).`;
-
-        return;
-    }
-
-    const confirmed = window.confirm(
-        "Are you sure you want to submit your quiz?"
-    );
-
-    if (!confirmed) return;
+    isSubmitting = true;
+    clearInterval(timerInterval);
 
     submitBtn.disabled = true;
     submitBtn.textContent = "Submitting...";
@@ -263,7 +370,8 @@ submitBtn.addEventListener("click", async () => {
                 body: JSON.stringify({
                     full_name: participantName,
                     email: participantEmail,
-                    answers: answers
+                    answers: answers,
+                    timed_out: timedOut
                 })
             }
         );
@@ -273,6 +381,9 @@ submitBtn.addEventListener("click", async () => {
         if (!response.ok) {
             throw new Error(result.error || "Submission failed.");
         }
+
+        // Clear saved attempt only after successful submission
+        clearSavedAttempt();
 
         // DISPLAY RESULT
         quizScreen.classList.add("hidden");
@@ -285,7 +396,9 @@ submitBtn.addEventListener("click", async () => {
             `${result.score}/${result.total_questions}`;
 
         document.getElementById("result-message").textContent =
-            "Your quiz has been successfully submitted. Thank you for participating.";
+            timedOut
+                ? "Time is up. Your quiz has been submitted. Thank you for participating."
+                : "Your quiz has been successfully submitted. Thank you for participating.";
 
     } catch (error) {
         console.error("Submission error:", error);
@@ -294,6 +407,81 @@ submitBtn.addEventListener("click", async () => {
             error.message || "Something went wrong. Please try again.";
 
         submitBtn.disabled = false;
-        submitBtn.textContent = "Submit Quiz";
+        submitBtn.textContent = "Retry Submission";
+
+        // Keep the saved attempt so answers aren't lost.
+        // If time has expired, allow the participant to retry.
+        if (timedOut || Date.now() >= quizDeadline) {
+            submitBtn.classList.remove("hidden");
+            nextBtn.classList.add("hidden");
+            previousBtn.classList.add("hidden");
+        }
+
+    } finally {
+        isSubmitting = false;
     }
+}
+
+submitBtn.addEventListener("click", () => {
+    submitQuiz(quizDeadline && Date.now() >= quizDeadline);
 });
+
+// ========================================
+// RESTORE PREVIOUS ATTEMPT
+// ========================================
+
+async function restoreAttempt() {
+    const saved = localStorage.getItem(ATTEMPT_STORAGE_KEY);
+
+    if (!saved) return;
+
+    try {
+        const attempt = JSON.parse(saved);
+
+        if (
+            !attempt.full_name ||
+            !attempt.email ||
+            !attempt.deadline
+        ) {
+            clearSavedAttempt();
+            return;
+        }
+
+        participantName = attempt.full_name;
+        participantEmail = attempt.email;
+        answers = attempt.answers || {};
+        quizDeadline = Number(attempt.deadline);
+
+        await loadQuestions();
+
+        if (!questions.length) {
+            throw new Error("No questions available.");
+        }
+
+        currentQuestion = Math.min(
+            Math.max(Number(attempt.current_question) || 0, 0),
+            questions.length - 1
+        );
+
+        document.getElementById("participant-name").value =
+            participantName;
+
+        document.getElementById("participant-email").value =
+            participantEmail;
+
+        startScreen.classList.add("hidden");
+        quizScreen.classList.remove("hidden");
+
+        renderQuestion();
+        startTimer();
+
+    } catch (error) {
+        console.error("Could not restore quiz attempt:", error);
+
+        document.getElementById("start-error").textContent =
+            "We couldn't restore your previous attempt. Please contact the quiz administrator.";
+    }
+}
+
+// Check for an existing attempt when the page opens
+restoreAttempt();

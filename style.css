@@ -331,3 +331,26 @@ footer {
         font-size: 10px;
     }
 }
+
+/* QUIZ TIMER */
+
+.timer-display {
+    background: #eaf2fb;
+    color: #245D94;
+    padding: 9px 14px;
+    border-radius: 7px;
+    font-weight: bold;
+    font-size: 15px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.timer-display.warning {
+    background: #fff0e8;
+    color: #d35400;
+}
+
+.timer-display.danger {
+    background: #feecec;
+    color: #d92d20;
+}
