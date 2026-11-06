@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JCIN UNIBEN Quiz</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="brand">
+            <div class="brand-icon">JCI</div>
+            <div>
+                <h2>JCIN UNIBEN</h2>
+                <p>Knowledge Quiz</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- START SCREEN -->
+        <section id="start-screen" class="panel">
+            <div class="intro-icon">✦</div>
+            <p class="eyebrow">JCIN UNIBEN</p>
+            <h1>Test Your JCI Knowledge</h1>
+
+            <p class="description">
+                Welcome! Take this quiz to test your knowledge
+                of JCI history, principles, leadership and parliamentary procedure.
+            </p>
+
+            <div class="quiz-info">
+                <div>
+                    <strong>40</strong>
+                    <span>Questions</span>
+                </div>
+                <div>
+                    <strong>40</strong>
+                    <span>Maximum marks</span>
+                </div>
+            </div>
+
+            <label for="participant-name">Your full name</label>
+            <input type="text" id="participant-name" placeholder="Enter your full name" autocomplete="name" required>
+
+            <label for="participant-email">Your email address</label>
+            <input type="email" id="participant-email" placeholder="Enter your email address" autocomplete="email"
+                required>
+
+            <button id="start-btn" class="primary-btn" type="button">
+                Start Quiz →
+            </button>
+
+            <p id="start-error" class="error"></p>
+        </section>
+
+        <!-- QUIZ SCREEN -->
+        <section id="quiz-screen" class="panel hidden">
+
+            <div class="quiz-top">
+                <span>JCI KNOWLEDGE QUIZ</span>
+                <span id="question-counter">Question 1 of 40</span>
+            </div>
+
+            <div class="progress-track">
+                <div id="progress-bar"></div>
+            </div>
+
+            <div class="question-area">
+                <p class="eyebrow" id="question-number">QUESTION 01</p>
+                <h2 id="question-text">Loading question...</h2>
+                <div id="options-container"></div>
+            </div>
+
+            <p id="answer-error" class="error"></p>
+
+            <div class="navigation">
+                <button id="previous-btn" class="secondary-btn" type="button">
+                    ← Previous
+                </button>
+
+                <button id="next-btn" class="primary-btn" type="button">
+                    Next →
+                </button>
+
+                <button id="submit-btn" class="primary-btn hidden" type="button">
+                    Submit Quiz
+                </button>
+            </div>
+
+        </section>
+
+        <!-- RESULT SCREEN -->
+        <section id="result-screen" class="panel hidden">
+            <div class="result-icon">✓</div>
+            <p class="eyebrow">QUIZ COMPLETED</p>
+            <h1>Submission Successful!</h1>
+
+            <p id="result-name" class="description"></p>
+
+            <div class="score-display">
+                <strong id="final-score">0/40</strong>
+                <span>Your Score</span>
+            </div>
+
+            <p id="result-message" class="description">
+                Thank you for participating.
+            </p>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>JCIN UNIBEN · Knowledge Quiz</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="script.js?v=2"></script>
+
+</body>
+
+</html>
