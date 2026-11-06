@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Admin | JCIN UNIBEN</title>
+    <link rel="stylesheet" href="admin.css">
+</head>
+
+<body>
+
+    <header class="header">
+        <div class="brand">
+            <div class="brand-icon">JCI</div>
+            <div>
+                <h2>JCIN UNIBEN</h2>
+                <p>Quiz Administration</p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+
+        <!-- LOGIN -->
+        <section id="login-screen" class="panel login-panel">
+            <p class="eyebrow">ADMINISTRATION</p>
+            <h1>Welcome back</h1>
+            <p class="description">Sign in to manage quiz results.</p>
+
+            <form id="login-form">
+                <label for="admin-email">Email address</label>
+                <input type="email" id="admin-email" placeholder="Enter your admin email" autocomplete="username"
+                    required>
+
+                <label for="admin-password">Password</label>
+                <input type="password" id="admin-password" placeholder="Enter your password"
+                    autocomplete="current-password" required>
+
+                <button type="submit" id="login-btn" class="primary-btn">
+                    Sign In →
+                </button>
+            </form>
+
+            <p id="login-error" class="error"></p>
+        </section>
+
+        <!-- DASHBOARD -->
+        <section id="dashboard-screen" class="hidden">
+
+            <div class="dashboard-heading">
+                <div>
+                    <p class="eyebrow">JCIN UNIBEN</p>
+                    <h1>Quiz Dashboard</h1>
+                    <p class="description">Monitor participant performance and submissions.</p>
+                </div>
+
+                <button id="logout-btn" class="secondary-btn">
+                    Log Out
+                </button>
+            </div>
+
+            <p id="dashboard-error" class="error"></p>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span>Total Participants</span>
+                    <strong id="total-participants">0</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Average Score</span>
+                    <strong id="average-score">0/40</strong>
+                </div>
+
+                <div class="stat-card">
+                    <span>Highest Score</span>
+                    <strong id="highest-score">0/40</strong>
+                </div>
+            </div>
+
+            <section class="results-panel">
+                <div class="results-heading">
+                    <div>
+                        <h2>Quiz Submissions</h2>
+                        <p>All submitted participant results.</p>
+                    </div>
+
+                    <button id="export-btn" class="primary-btn">
+                        Export CSV ↓
+                    </button>
+                </div>
+
+                <input type="search" id="search-input" placeholder="Search by name or email...">
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Participant</th>
+                                <th>Email</th>
+                                <th>Score</th>
+                                <th>Date Submitted</th>
+                            </tr>
+                        </thead>
+
+                        <tbody id="results-body">
+                            <tr>
+                                <td colspan="5">Loading results...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p id="result-count" class="result-count"></p>
+            </section>
+
+        </section>
+
+    </main>
+
+    <footer>
+        <p>JCIN UNIBEN · Quiz Administration</p>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="admin.js"></script>
+
+</body>
+
+</html>
